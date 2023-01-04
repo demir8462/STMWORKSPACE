@@ -7,17 +7,19 @@
 #ifndef mpu9250
 #define mpu9250
 #include "mpu9250driver.h"
-float ACCCONSTANT = 16384.0;
-float GYROCONSTANT =131.0;
+float ACCCONSTANT = 16384;
+float GYROCONSTANT =131;
 extern I2C_HandleTypeDef hi2c1;
 struct RawData
 {
     int16_t ax, ay, az, gx, gy, gz;
+    uint16_t temp;
 } extern rawData;
 
 struct SensorData
 {
     float ax, ay, az, gx, gy, gz;
+    float temp;
 } extern sensorData;
 
 struct GyroCal
@@ -28,7 +30,7 @@ struct GyroCal
 uint8_t testDevice()
 {
 	uint8_t data;
-	HAL_I2C_Mem_Read(&hi2c1, AD0_LOW, WHO_AM_I, 1, &data, 1, 10);
+	HAL_I2C_Mem_Read(&hi2c1, AD0_LOW, WHO_AM_I, 1, &data, 1, 100);
 
 	if(data == 0x75) // CHANGE AD0_LOW here if you connect ado pin to high
 		return 1;
@@ -41,7 +43,7 @@ uint8_t beginmpu()
 	if(veri != 1)
 		return 0;
 	veri = 0;
-	HAL_I2C_Mem_Write(&hi2c1, AD0_LOW, PWR_MGMT_1, 1,&veri, 1, 20);
+	HAL_I2C_Mem_Write(&hi2c1, AD0_LOW, PWR_MGMT_1, 1,&veri, 1, 100);
 	setRange();
 	return 1;
 }
@@ -49,22 +51,26 @@ void setRange()
 {
 	uint8_t data = 0x00;
  // we first set the accelerometer range , [4:3] bits in register varies the range. we will set register all 0 to use at 250.
-	HAL_I2C_Mem_Write(&hi2c1, AD0_LOW, ACCEL_CONFIG, 1, &data , 1, 20);
+	HAL_I2C_Mem_Write(&hi2c1, AD0_LOW, ACCEL_CONFIG, 1, &data , 1, 100);
 	// now we set the  gyro range
-	data = 0x00; // just to be sure
-	HAL_I2C_Mem_Write(&hi2c1, AD0_LOW, GYRO_CONFIG, 1, &data , 1, 20);
+	data = 0; // just to be sure
+	HAL_I2C_Mem_Write(&hi2c1, AD0_LOW, GYRO_CONFIG, 1, &data , 1, 100);
 }
 void mpu_read()
 {
 	uint8_t BUFFER[14]; // WE START READ FROM  3B to 48 , every regiser has a byte data so we need 14 byte buffer
-	HAL_I2C_Mem_Read(&hi2c1, AD0_LOW, ACCEL_XOUT_H, 1, BUFFER, 14, 50); // read the data
+	HAL_I2C_Mem_Read(&hi2c1, AD0_LOW, ACCEL_XOUT_H, 1, BUFFER, 14, 100); // read the data
 	rawData.ax = BUFFER[0] << 8 | BUFFER[1];
 	rawData.ay = BUFFER[2] << 8 | BUFFER[3];
 	rawData.az = BUFFER[4] << 8 | BUFFER[5];
+	// read the temperature
+	rawData.temp = BUFFER[6] << 8 | BUFFER[7];
 	// NOW WE SHIFT AND SET THE GYROSCOPE DATA
 	rawData.gx = BUFFER[8] << 8 | BUFFER[9];
 	rawData.gy = BUFFER[10] << 8 | BUFFER[11];
 	rawData.gz = BUFFER[12] << 8 | BUFFER[13];
+
+
 }
 void mpu_measure()
 {
@@ -77,6 +83,7 @@ void mpu_measure()
 	sensorData.gx = rawData.gx/GYROCONSTANT-gyroCal.x;
 	sensorData.gy = rawData.gy/GYROCONSTANT-gyroCal.y;
 	sensorData.gz = rawData.gz/GYROCONSTANT-gyroCal.z;
+	sensorData.temp = (rawData.temp-21)/333.8+21;
 }
 void calibrate_gyro()
 {

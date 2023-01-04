@@ -48,11 +48,13 @@ TIM_HandleTypeDef htim2;
 struct RawData
 {
     int16_t ax, ay, az, gx, gy, gz;
+    uint16_t temp;
 } rawData;
 
 struct SensorData
 {
     float ax, ay, az, gx, gy, gz;
+    float temp;
 } sensorData;
 
 struct GyroCal
@@ -124,14 +126,14 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
-
-  /* USER CODE END 2 */
   if(beginmpu() == 1)
   {
 	  calibrate_gyro();
 	  HAL_TIM_Base_Start_IT(&htim2);
   }
+
+  /* USER CODE END 2 */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -202,7 +204,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.ClockSpeed = 400000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
