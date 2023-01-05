@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mpu9250driver.h"
+#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,7 +79,7 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float gxx,vi;
+float gxx,gzz,vi,viz;
 int i;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -86,9 +87,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 	{
 		i++;
 		mpu_measure();
-		gxx += (vi+sensorData.gx)/2*0.02;
+		float accelPitch = atan2(sensorData.ay, sensorData.az) * RAD2DEG;
+		gxx = 0.98 * (gxx + (sensorData.gx+vi) * 0.01) + (1 - 0.98) * accelPitch;
 		vi = sensorData.gx;
-
+		gzz += (viz+sensorData.gz)/2*0.02;
+		viz = sensorData.gz;
 	}
 }
 

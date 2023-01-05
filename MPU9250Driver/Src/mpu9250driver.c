@@ -102,4 +102,5 @@ void calibrate_gyro()
 	gyroCal.y = y/500.0;
 	gyroCal.z = z/500.0;
 }
+
 #endif
