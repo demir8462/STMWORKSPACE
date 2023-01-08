@@ -1,0 +1,6 @@
+../Core/Src/mpu9250driver.c:30:9:testDevice	32	static
+../Core/Src/mpu9250driver.c:40:9:beginmpu	32	static
+../Core/Src/mpu9250driver.c:50:6:setRange	32	static
+../Core/Src/mpu9250driver.c:59:6:mpu_read	40	static
+../Core/Src/mpu9250driver.c:75:6:mpu_measure	8	static
+../Core/Src/mpu9250driver.c:88:6:calibrate_gyro	24	static
