@@ -1,0 +1,15 @@
+../Core/Src/TFT_MENU.c:21:6:Test_Button_unselect	24	static
+../Core/Src/TFT_MENU.c:30:6:Test_Button_select	24	static
+../Core/Src/TFT_MENU.c:39:6:Page2_Button_unselect	24	static
+../Core/Src/TFT_MENU.c:48:6:Page2_Button_select	24	static
+../Core/Src/TFT_MENU.c:57:6:back_Button_unselect	24	static
+../Core/Src/TFT_MENU.c:66:6:back_Button_select	24	static
+../Core/Src/TFT_MENU.c:75:6:ledon_Button_unselect	24	static
+../Core/Src/TFT_MENU.c:84:6:ledon_Button_select	24	static
+../Core/Src/TFT_MENU.c:93:6:ledoff_Button_unselect	24	static
+../Core/Src/TFT_MENU.c:102:6:ledoff_Button_select	24	static
+../Core/Src/TFT_MENU.c:111:6:HomeMenu	8	static
+../Core/Src/TFT_MENU.c:123:6:TestMenu	24	static
+../Core/Src/TFT_MENU.c:139:6:Page2Menu	8	static
+../Core/Src/TFT_MENU.c:158:6:HAL_GPIO_EXTI_Callback	16	static
+../Core/Src/TFT_MENU.c:182:6:Menu_Handler	8	static
