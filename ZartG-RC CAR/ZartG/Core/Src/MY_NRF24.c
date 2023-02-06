@@ -216,11 +216,10 @@ void NRF24_begin(GPIO_TypeDef *nrf24PORT, uint16_t nrfCSN_Pin, uint16_t nrfCE_Pi
 	NRF24_ACTIVATE_cmd();
 	NRF24_write_register(0x1c, 0);
 	NRF24_write_register(0x1d, 0);
-	printRadioSettings();
 	//Initialise retries 15 and delay 1250 usec
 	NRF24_setRetries(15, 15);
 	//Initialise PA level to max (0dB)
-	NRF24_setPALevel(RF24_PA_m18dB);
+	NRF24_setPALevel(RF24_PA_0dB);
 	//Initialise data rate to 1Mbps
 	NRF24_setDataRate(RF24_1MBPS);
 	//Initalise CRC length to 16-bit (2 bytes)

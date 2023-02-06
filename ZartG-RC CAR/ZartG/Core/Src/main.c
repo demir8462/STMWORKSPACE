@@ -24,6 +24,7 @@
 #include "mpu9250driver.h"
 #include <math.h>
 #include "MY_NRF24.h"
+#include "AHT10.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +43,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
 
 SPI_HandleTypeDef hspi1;
 
@@ -71,10 +73,15 @@ struct Araba
     int tiltx, tiltz, hiz, temp;
 } araba;
 
-char PAKET[4];
-uint64_t TxpipeAddrs = 0xF0F0F0F0E1LL;
-bool send;
-
+char PAKET[20],RXPAKET[4];
+uint64_t TxpipeAddrs =0xF0F0F0F0E1LL;;
+uint64_t RxpipeAddrs = 0xC2C2C2C2C2LL;
+bool SEND,REC;
+// FOR AHT10
+struct{
+	float nem;
+	float sicaklik;
+}veri;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,6 +90,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_I2C2_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -91,20 +99,34 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-float gxx,gyy,vi,viy;
+float gxx,gzz,vi,viy;
+uint8_t SAYAC;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
 	if(htim == &htim2)
 	{
 		mpu_measure();
-		float accelPitch = atan2(sensorData.ay, sensorData.az) * RAD2DEG;
-		gxx = 0.98 * (gxx + (sensorData.gx+vi) * 0.01) + (1 - 0.98) * accelPitch;
-		vi = sensorData.gx;
-		float accelRoll = atan2(sensorData.az, sensorData.ax) * RAD2DEG;
-		gyy = 0.98 * (gyy + (sensorData.gy+viy) * 0.01) + (1 - 0.98) * accelRoll;
-		viy = sensorData.gy;
+		float accelPitch = atan2(sensorData.ax, sensorData.az) * RAD2DEG;
+		gxx = 0.98 * (gxx + (sensorData.gy+vi) * 0.01) + (1 - 0.98) * accelPitch;
+		vi = sensorData.gy;
+		float accelRoll = atan2(sensorData.ay, sensorData.ax) * RAD2DEG;
+		gzz = 0.98 * (gzz + (sensorData.gz+viy) * 0.01) + (1 - 0.98) * accelRoll;
+		viy = sensorData.gz;
+		if(SAYAC == 10)
+		{
+			SAYAC = 0;
+			AHT10read();
+		}else if(SAYAC == 5)
+		{
+			AHT10measure();
+			SAYAC++;
+		}else
+		{
+			SAYAC++;
+		}
 	}
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -120,7 +142,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-   HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -138,20 +160,19 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM2_Init();
   MX_I2C1_Init();
+  MX_I2C2_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  if(beginmpu() == 1)
-    {
-  	  calibrate_gyro();
-  	  HAL_TIM_Base_Start_IT(&htim2);
-  	araba.hiz =9;
-  	NRF24_begin(GPIOA, CSN_Pin, CE_Pin, hspi1);
-  	  	NRF24_stopListening();
-  	  	NRF24_setPayloadSize(4);
-  	  	NRF24_openWritingPipe(TxpipeAddrs);
-  	  	NRF24_setAutoAck(false);
-  	  	NRF24_setChannel(120);
-    }
+
+  NRF24_begin(GPIOA, CSN_Pin, CE_Pin, hspi1);
+  NRF24_setPayloadSize(20);
+  NRF24_openWritingPipe(TxpipeAddrs);
+  NRF24_setAutoAck(false);
+  NRF24_setChannel(120);
+  beginmpu();
+  calibrate_gyro();
+  AHT10enableSensor();
+  HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -161,12 +182,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  PAKET[0] = (int)gxx;
-	  PAKET[1] = (int)(gyy);
-	  PAKET[2] = 31;
-	  PAKET[3] = sensorData.temp;
-	  send = NRF24_write(PAKET, 4);
-	  HAL_Delay(21);
+	  sprintf(PAKET,"#%d#%d#%d#%d",(int)gxx,(int)gzz,(int)(veri.sicaklik+sensorData.temp)/2,(int)sensorData.temp);
+	  SEND = NRF24_write(PAKET, sizeof(PAKET));
+	  HAL_Delay(20);
 
   }
   /* USER CODE END 3 */
@@ -246,6 +264,40 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 400000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
   * @brief SPI1 Initialization Function
   * @param None
   * @retval None
@@ -268,7 +320,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -371,15 +423,26 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, CSN_Pin|CE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CSN_Pin CE_Pin */
-  GPIO_InitStruct.Pin = CSN_Pin|CE_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, CE_Pin|CSN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : CE_Pin CSN_Pin */
+  GPIO_InitStruct.Pin = CE_Pin|CSN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

@@ -1,0 +1,3 @@
+../Core/Src/AHT10.c:11:6:AHT10enableSensor	24	static
+../Core/Src/AHT10.c:16:6:AHT10measure	16	static
+../Core/Src/AHT10.c:21:6:AHT10read	24	static
