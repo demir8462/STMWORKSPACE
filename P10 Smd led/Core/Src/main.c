@@ -35,13 +35,13 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-uint8_t s_0[6][10] = {
-		{1,0,1,1,0,1,1,1,1,1},
-		{0,1,1,1,1,0,1,1,1,1},
-		{0,1,0,0,1,0,1,1,1,1},
-		{0,1,0,0,1,0,1,1,1,1},
-		{0,1,1,1,1,0,1,1,1,1},
-		{1,0,1,1,0,1,1,1,1,1},
+uint8_t s_0[6][4] = {
+		{0,0,0,0},
+		{0,1,1,0},
+		{0,0,1,0},
+		{0,1,1,0},
+		{0,1,0,0},
+		{0,0,0,0}
 };
 
 
@@ -104,7 +104,12 @@ void clearScreen()
       for (uint8_t col = 0; col < 32; col++)
         EKRAN[row][col] = 1;
 }
-
+void drawPixel(uint8_t X,uint8_t Y,uint8_t Value)
+{
+	if(Value != 0 && Value != 1)
+		return;
+	EKRAN[Y][X] = Value;
+}
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
 	if(htim == &htim2)
@@ -129,41 +134,64 @@ int pows(int poww,int sayi)
 }
 void setAreaData(uint8_t bolge,uint8_t satir,uint8_t value)
 {
+	uint8_t etken=0;
 	if(bolge <= 4)
 	{
-		displayArea[satir][bolge*4-1] = value;
+		displayArea[satir][3+(bolge-1)*4] = value;
 	}else if(bolge <= 8 && bolge > 4)
 	{
-		displayArea[satir][(bolge%4)*4-2] = value;
+		displayArea[satir][2+(bolge-5)*4] = value;
 	}else if(bolge > 8 && bolge <= 12)
 	{
-		displayArea[satir][(bolge%4)-3] = value;
+		displayArea[satir][1+(bolge-9)*4] = value;
 	}else if(bolge > 12 && bolge <= 16)
 	{
-		displayArea[satir][(bolge%4)-4] = value;
+		displayArea[satir][0+(bolge-13)*4] = value;
 	}
-
 
 }
 void WRITEE(uint8_t *STR,uint8_t len,uint8_t satirx)
 {
-	for(int i = 0;i<len;i++)
+	if(satirx == 1)
 	{
-		if(STR[i] != '0')
-			continue;
-		if(SATIR1INDEX + sizeof(s_0[0]) <= 32)
-		{
-			for(int satirr = 0;satirr<6;satirr++)
+		for(int i = 0;i<len;i++)
 			{
-				for(int j=0;j<size;j++)
+				if(STR[i] != '0')
+					continue;
+				if(SATIR1INDEX + sizeof(s_0[0]) <= 32)
 				{
-					EKRAN[satirr][SATIR1INDEX+j] = s_0[satirr][j];
-				}
-			}
-			SATIR1INDEX += size+1;
+					for(int satirr = 0;satirr<6;satirr++)
+					{
+						for(int j=0;j<size;j++)
+						{
+							EKRAN[satirr][SATIR1INDEX+j] = s_0[satirr][j];
+						}
+					}
+					SATIR1INDEX += size+1;
 
-		}else
-			return;
+				}else
+					break;
+			}
+	}else
+	{
+		for(int i = 0;i<len;i++)
+			{
+				if(STR[i] != '0')
+					continue;
+				if(SATIR2INDEX + sizeof(s_0[0]) <= 32)
+				{
+					for(int satirr = 0;satirr<6;satirr++)
+					{
+						for(int j=0;j<size;j++)
+						{
+							EKRAN[satirr+8][SATIR2INDEX+j] = s_0[satirr][j];
+						}
+					}
+					SATIR2INDEX += size+1;
+
+				}else
+					break;
+			}
 	}
 	// PİYASA BAŞLANGIÇÇÇ
 
@@ -189,7 +217,8 @@ void WRITEE(uint8_t *STR,uint8_t len,uint8_t satirx)
 
 	// PIYASA BITIS BABALAR SİKİŞ
 }
-uint8_t a[] = "00";
+uint8_t a[] = "0000000";
+uint8_t b[] = "000";
 /* USER CODE END 0 */
 
 /**
@@ -249,6 +278,7 @@ int main(void)
   displayArea[3][13]=0b111011;
   clearScreen();
   WRITEE(a, sizeof(a), 1);
+  WRITEE(b, sizeof(b), 2);
   //writeData();
   /* USER CODE END 2 */
 
