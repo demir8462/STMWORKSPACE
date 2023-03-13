@@ -35,16 +35,25 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-uint8_t s_0[6][4] = {
-		{0,0,0,0},
-		{0,1,1,0},
-		{0,0,1,0},
-		{0,1,1,0},
-		{0,1,0,0},
-		{0,0,0,0}
+uint8_t s_0[2][6][5] = {{
+		{0,0,0,0,0},
+		{1,0,0,0,1},
+		{1,1,0,1,1},
+		{1,1,0,1,1},
+		{1,0,0,0,1},
+		{0,0,0,0,0}},
+		{
+		{2,1,0,1,2},
+		{2,0,0,1,2},
+		{2,1,0,1,2},
+		{2,1,0,1,2},
+		{2,1,0,1,2},
+		{2,0,0,0,2}
+		}
+
 };
 
-
+char ALFABE[2] = "01";
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -71,6 +80,15 @@ volatile uint8_t displayArea[4][16];
 uint8_t EKRAN[16][32];
 uint8_t transmitData;
 int brightness =500;
+uint8_t findCharIndex(char a)
+{
+	for(int i=0;i<sizeof(ALFABE);i++)
+	{
+		if(ALFABE[i] == a)
+			return i;
+	}
+	return 254;
+}
 void Latch()
 {
   HAL_GPIO_WritePin(GPIOA, LATCH_Pin, 1);
@@ -119,7 +137,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 }
 uint8_t SATIR1INDEX=0;
 uint8_t SATIR2INDEX=0;
-uint8_t size = sizeof(s_0[0]);
+uint8_t size = sizeof(s_0[0][0]);
 int pows(int poww,int sayi)
 {
 	if (poww == 0)
@@ -152,22 +170,37 @@ void setAreaData(uint8_t bolge,uint8_t satir,uint8_t value)
 }
 void WRITEE(uint8_t *STR,uint8_t len,uint8_t satirx)
 {
+	uint8_t CHARINDEX;
+	uint8_t FREECOLCOUNT;
 	if(satirx == 1)
 	{
 		for(int i = 0;i<len;i++)
 			{
-				if(STR[i] != '0')
+				CHARINDEX = findCharIndex(STR[i]);
+				if(CHARINDEX == 254)
 					continue;
-				if(SATIR1INDEX + sizeof(s_0[0]) <= 32)
+				FREECOLCOUNT = 0;
+				for(int s=0;s<5;s++)
+				{
+					if(s_0[CHARINDEX][0][s] == 2)
+						FREECOLCOUNT++;
+				}
+				if(SATIR1INDEX + sizeof(s_0[CHARINDEX][0])-FREECOLCOUNT <= 32)
 				{
 					for(int satirr = 0;satirr<6;satirr++)
 					{
+						uint8_t SatirFreeTakip=0;
 						for(int j=0;j<size;j++)
 						{
-							EKRAN[satirr][SATIR1INDEX+j] = s_0[satirr][j];
+							if(s_0[CHARINDEX][satirr][j] == 2)
+							{
+								SatirFreeTakip++;
+								continue;
+							}
+							EKRAN[satirr][SATIR1INDEX+j-SatirFreeTakip] = s_0[CHARINDEX][satirr][j];
 						}
 					}
-					SATIR1INDEX += size+1;
+					SATIR1INDEX += 6-FREECOLCOUNT;
 
 				}else
 					break;
@@ -176,18 +209,31 @@ void WRITEE(uint8_t *STR,uint8_t len,uint8_t satirx)
 	{
 		for(int i = 0;i<len;i++)
 			{
-				if(STR[i] != '0')
+				CHARINDEX = findCharIndex(STR[i]);
+				if(CHARINDEX == 254)
 					continue;
-				if(SATIR2INDEX + sizeof(s_0[0]) <= 32)
+				FREECOLCOUNT = 0;
+				for(int s=0;s<5;s++)
+				{
+					if(s_0[CHARINDEX][0][s] == 2)
+						FREECOLCOUNT++;
+				}
+				if(SATIR2INDEX + sizeof(s_0[CHARINDEX][0])-FREECOLCOUNT <= 32)
 				{
 					for(int satirr = 0;satirr<6;satirr++)
 					{
+						uint8_t SatirFreeTakip=0;
 						for(int j=0;j<size;j++)
 						{
-							EKRAN[satirr+8][SATIR2INDEX+j] = s_0[satirr][j];
+							if(s_0[CHARINDEX][satirr][j] == 2)
+							{
+								SatirFreeTakip++;
+								continue;
+							}
+							EKRAN[satirr+8][SATIR2INDEX+j-SatirFreeTakip] = s_0[CHARINDEX][satirr][j];
 						}
 					}
-					SATIR2INDEX += size+1;
+					SATIR2INDEX += 6-FREECOLCOUNT;
 
 				}else
 					break;
@@ -217,8 +263,8 @@ void WRITEE(uint8_t *STR,uint8_t len,uint8_t satirx)
 
 	// PIYASA BITIS BABALAR SİKİŞ
 }
-uint8_t a[] = "0000000";
-uint8_t b[] = "000";
+uint8_t a[] = "101";
+uint8_t b[] = "010";
 /* USER CODE END 0 */
 
 /**
